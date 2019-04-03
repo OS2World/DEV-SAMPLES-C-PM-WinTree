@@ -1,0 +1,36 @@
+                                  WINTREE
+
+      WinTree will produce a scrollable listing of all the windows and
+      child windows currently active at the time the program is
+      executed.
+
+      I wrote this very "down and dirty" program to help me debug some
+      code that was trying to create child windows on another
+      application's window.  I needed to see if the children were
+      getting created in the right place.  (They weren't and still
+      aren't!).
+
+      The most helpful part of this program is the recursive
+      subroutine called "TraverseWindows" at the end of the listing.
+      This is the code that does the real work.  The rest of it is
+      just display services.
+
+      The display part is a rip-off of the SYSVALS program in Charles
+      Petzold's book.  The algorithm for traversing the trees is an
+      extrapolation of a code segment I saw on IBMLink.
+
+      I'm not interested in any money for this code, as it doesn't
+      really do much.  I WOULD be interested in hearing if it helped
+      you.  I can be contacted via:
+
+                Prodigy         [VWSD07A]
+                CompuServe      [73457,365]
+
+      I'm on Prodigy a lot more than CIS.... connect charges ya know.
+
+      Feel free to distribute or modify the code as you wish.  Enjoy.
+
+      Gary Murphy
+      1022 N. Cooper
+      Olathe, KS 66061
+

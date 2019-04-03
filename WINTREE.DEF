@@ -1,0 +1,8 @@
+NAME        WINTREE  WINDOWAPI
+
+DESCRIPTION 'List Windows Active (c) Gary Murphy, 1990'
+PROTMODE
+HEAPSIZE    1024
+STACKSIZE   8192
+EXPORTS     ClientWndProc
+
