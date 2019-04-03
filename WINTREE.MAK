@@ -1,7 +1,6 @@
 wintree.obj: wintree.c
-  cl -c -G2sw -W3 -Zi -Op wintree.c >> tcout.tmp
-
+  cl -c -Alfu -G2s -W3 -Zi -Od wintree.c >> wintree.tmp
 
 wintree.exe: wintree.obj wintree.def
-  link wintree,/CODEVIEW /align:16, NUL, os2, wintree >> tcout.tmp
+  link /BATCH /CODEVIEW @wintree.l       >> wintree.tmp
 

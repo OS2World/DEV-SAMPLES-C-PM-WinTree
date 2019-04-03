@@ -6,13 +6,16 @@
 #define INCL_GPI
 #include <os2.h>
 #include <stdlib.h>
+#include <malloc.h>
 #include <stdio.h>
 #include <string.h>
+
+#define IDL_LIST    100
 
 HAB hab;         /* Handle to an anchor block */
 
 MRESULT EXPENTRY ClientWndProc(HWND, USHORT, MPARAM, MPARAM);
-void TraverseWindows(HWND hwnd, char **list, USHORT *index, USHORT level);
+extern VOID TraverseWindows(HWND hwnd, HWND hwndList, SHORT sLevel);
 
 int main(void)
    {
@@ -22,9 +25,7 @@ int main(void)
                                 FCF_SIZEBORDER    |
                                 FCF_MINMAX        |
                                 FCF_SHELLPOSITION |
-                                FCF_TASKLIST      |
-                                FCF_VERTSCROLL    |
-                                FCF_HORZSCROLL    ;
+                                FCF_TASKLIST      ;
 
    HMQ           hmq;         /* Handle to a message queue */
    HWND          hwndFrame,   /* Handle to the fram window */
@@ -50,10 +51,7 @@ int main(void)
                                   0,
                                   &hwndClient);
 
-   WinSendMsg(hwndFrame,
-              WM_SETICON,
-              WinQuerySysPointer(HWND_DESKTOP, SPTR_APPICON, FALSE),
-              NULL);
+   WinSendMsg(hwndFrame, WM_SETICON, WinQuerySysPointer(HWND_DESKTOP, SPTR_APPICON, FALSE), NULL);
 
    while(WinGetMsg(hab, &qmsg, NULL, 0, 0))
       WinDispatchMsg(hab,&qmsg);
@@ -68,258 +66,99 @@ int main(void)
 
 MRESULT EXPENTRY ClientWndProc(HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
    {
-   static HWND   hwndHscroll,  /* Handle to a horizontal scroll window */
-                 hwndVscroll;  /* Handle to a vertical scroll window */
-   static SHORT  sHscrollMax,  /* Horizontal scroll max */
-                 sVscrollMax,  /* Vertical Scroll Max */
-                 sHscrollPos,  /* Horizontal Scroll position */
-                 sVscrollPos,  /* Vertical Scroll position */
-                 cxChar,
-                 cxCaps,
-                 cyChar,
-                 cyDesc,
-                 cxClient,
-                 cyClient,
-                 MaxLines = 0,
-                 cxTextTotal;
-   static CHAR   *szBuffer[250];
-
-   FONTMETRICS   fm;
-   HPS           hps;          /* Handle to a presentation space */
-   POINTL        ptl;
-   SHORT         sLine,
-                 sPaintBeg,
-                 sPaintEnd,
-                 sHscrollInc,
-                 sVscrollInc;
-   RECTL         rclInvalid;
-
    switch(msg)
       {
       case WM_CREATE:
-         hps = WinGetPS(hwnd);
+         WinCreateWindow(hwnd, WC_LISTBOX, "Window List",
+                         WS_VISIBLE | LS_NOADJUSTPOS | LS_HORZSCROLL,
+                         0, 0, 0, 0,
+                         hwnd, HWND_TOP, IDL_LIST, NULL, NULL);
 
-         GpiQueryFontMetrics(hps,(LONG) sizeof fm, &fm);
+         WinSetPresParam(hwnd, PP_FONTNAMESIZE, 1+_fstrlen("8.Courier"), "8.Courier");
 
-         cxChar = (SHORT) fm.lAveCharWidth;
-         cxCaps = (SHORT) fm.lEmInc;
-         cyChar = (SHORT) fm.lMaxBaselineExt;
-         cyDesc = (SHORT) fm.lMaxDescender;
+         /* Traverse the desktop windows */
 
-         WinReleasePS(hps);
-
-         cxTextTotal = 80 * cxCaps;
-
-         hwndHscroll = WinWindowFromID(
-                          WinQueryWindow(hwnd, QW_PARENT, FALSE),
-                          FID_HORZSCROLL);
-
-         hwndVscroll = WinWindowFromID(
-                          WinQueryWindow(hwnd, QW_PARENT, FALSE),
-                          FID_VERTSCROLL);
-
-         TraverseWindows(HWND_DESKTOP, szBuffer, &MaxLines, 0);
-         MaxLines--;
-
+         TraverseWindows(HWND_DESKTOP, WinWindowFromID(hwnd, IDL_LIST), 0);
          return 0;
 
       case WM_SIZE:
-         cxClient = SHORT1FROMMP(mp2);
-         cyClient = SHORT2FROMMP(mp2);
+         {
+         RECTL rclWin;   /* Size of the window */
 
-         sHscrollMax = max(0, cxTextTotal - cxClient);
-         sHscrollPos = min(sHscrollPos, sHscrollMax);
+         WinQueryWindowRect(hwnd, &rclWin);
 
-         WinSendMsg(hwndHscroll,
-                    SBM_SETSCROLLBAR,
-                    MPFROM2SHORT(sHscrollPos,0),
-                    MPFROM2SHORT(0,sHscrollMax));
+         /* Make the MLE fill the entire window */
 
-         WinEnableWindow(hwndHscroll, sHscrollMax ? TRUE : FALSE);
-
-         sVscrollMax = max(0, MaxLines - cyClient / cyChar);
-         sVscrollPos = min(sVscrollPos, sVscrollMax);
-
-         WinSendMsg(hwndVscroll,
-                    SBM_SETSCROLLBAR,
-                    MPFROM2SHORT(sVscrollPos,0),
-                    MPFROM2SHORT(0,sVscrollMax));
-
-         WinEnableWindow(hwndVscroll, sVscrollMax ? TRUE : FALSE);
+         WinSetWindowPos(WinWindowFromID(hwnd, IDL_LIST),
+            HWND_TOP, 0, 0, rclWin.xRight, rclWin.yTop, SWP_SIZE | SWP_MOVE);
          return 0;
-
-      case WM_HSCROLL:
-         switch(SHORT2FROMMP(mp2))
-            {
-            case SB_LINELEFT:
-               sHscrollInc = -cxCaps;
-               break;
-            case SB_LINERIGHT:
-               sHscrollInc = cxCaps;
-               break;
-            case SB_PAGELEFT:
-               sHscrollInc = -8 * cxCaps;
-               break;
-            case SB_PAGERIGHT:
-               sHscrollInc = 8 * cxCaps;
-               break;
-            case SB_SLIDERPOSITION:
-               sHscrollInc = SHORT1FROMMP(mp2) - sHscrollPos;
-               break;
-            default:
-               sHscrollInc = 0;
-               break;
-            } /* switch */
-
-         sHscrollInc = max(-sHscrollPos,
-                           min(sHscrollInc, sHscrollMax - sHscrollPos));
-
-         if (sHscrollInc != 0)
-            {
-            sHscrollPos += sHscrollInc;
-            WinScrollWindow(hwnd, -sHscrollInc, 0, NULL, NULL, NULL, NULL,
-                            SW_INVALIDATERGN);
-
-            WinSendMsg(hwndHscroll, SBM_SETPOS,
-                       MPFROMSHORT(sHscrollPos), NULL);
-            }
-
-         return 0;
-
-      case WM_VSCROLL:
-         switch(SHORT2FROMMP(mp2))
-            {
-            case SB_LINEUP:
-               sVscrollInc = -1;
-               break;
-            case SB_LINEDOWN:
-               sVscrollInc = 1;
-               break;
-            case SB_PAGEUP:
-               sVscrollInc = min(-1,-cyClient / cyChar);
-               break;
-            case SB_PAGEDOWN:
-               sVscrollInc = max(1, cyClient / cyChar);
-               break;
-            case SB_SLIDERTRACK:
-               sVscrollInc = SHORT1FROMMP(mp2) - sVscrollPos;
-               break;
-            default:
-               sVscrollInc = 0;
-               break;
-            } /* switch */
-
-         sVscrollInc = max(-sVscrollPos,
-                           min(sVscrollInc, sVscrollMax - sVscrollPos));
-
-         if (sVscrollInc != 0)
-            {
-            sVscrollPos += sVscrollInc;
-            WinScrollWindow(hwnd, 0, cyChar * sVscrollInc, NULL, NULL, NULL,
-                            NULL, SW_INVALIDATERGN);
-            WinSendMsg(hwndVscroll, SBM_SETPOS,
-                       MPFROMSHORT(sVscrollPos), NULL);
-
-            WinUpdateWindow(hwnd);
-            }
-
-         return 0;
-
-      case WM_CHAR:
-         switch(CHARMSG(&msg)->vkey)
-            {
-            case VK_LEFT:
-            case VK_RIGHT:
-               return WinSendMsg(hwndHscroll, msg, mp1, mp2);
-            case VK_UP:
-            case VK_DOWN:
-            case VK_PAGEUP:
-            case VK_PAGEDOWN:
-               return WinSendMsg(hwndVscroll, msg, mp1, mp2);
-            }
-         break;
+         }
 
       case WM_PAINT:
+         {
+         HPS   hps;
+         RECTL rclInvalid;
+
          hps = WinBeginPaint(hwnd, NULL, &rclInvalid);
          GpiErase(hps);
-         sPaintBeg = max(0, sVscrollPos +
-                            (cyClient - (SHORT) rclInvalid.yTop) / cyChar);
-         sPaintEnd = min(MaxLines, sVscrollPos +
-                            (cyClient - (SHORT) rclInvalid.yBottom) /
-                             cyChar + 1);
-
-         for(sLine = sPaintBeg; sLine < sPaintEnd; sLine++)
-            {
-            ptl.x = cxCaps - sHscrollPos;
-            ptl.y = cyClient - cyChar * (sLine + 1 - sVscrollPos) + cyDesc;
-
-            GpiCharStringAt(hps, &ptl,
-                            (LONG) strlen(szBuffer[sLine]),
-                            szBuffer[sLine]);
-            }
-
          WinEndPaint(hps);
          return 0;
+         } /* case block */
       }
    return WinDefWindowProc(hwnd, msg, mp1, mp2);
-   }
+   } /* ClientWndProc */
 
 
-
-void TraverseWindows(HWND hwnd, char **list, USHORT *index, USHORT level)
+VOID TraverseWindows(HWND hwnd, HWND hwndList, SHORT sLevel)
    {
-   HWND   hwndNext;     /* Handle to a window frame */
+   HWND   hwndNext;     /* Handle to a window frame      */
    HENUM  hEnum;        /* Handle to an enumeration list */
-   CHAR   szTemp[80];   /* Temp char buffer */
-   USHORT i;
+   CHAR   szLine[512];  /* Composed line for the listbox */
+   CHAR   szTitle[80];  /* Window title                  */
+   CHAR   szClass[80];  /* Window class                  */
+   CHAR   szLeader[90]; /* Leading blanks                */
+   USHORT i;            /* Loop index                    */
 
    /* Enumerate the Windows on the desktop */
 
    hEnum = WinBeginEnumWindows(hwnd);
-   while ((hwndNext = WinGetNextWindow(hEnum)) != NULL)
+   while(NULL != (hwndNext = WinGetNextWindow(hEnum)))
       {
 
       /* Unlock the Window */
 
       WinLockWindow(hwndNext,FALSE);
 
-      /* Get the name of the window */
+      /* Build the proper indentation string */
 
-      if ((list[*index] = calloc(1,80)) == NULL)
-         WinMessageBox(HWND_DESKTOP, hwnd,
-                       "Unable to allocate buffer",
-                       "Window List", 0, MB_OK | MB_ICONEXCLAMATION);
+      for(i = 0; (i < 89) & (i < sLevel); i++)
+         szLeader[i] = ' ';
+      szLeader[i] = '\0';
 
-      /* Get the title of the window */
+      /* Get the window's title */
 
-      for (i = 0; i < level; i++)
-         strcat(list[*index],"Ä");
+      WinQueryWindowText(hwndNext, 80, szTitle);
+      if (!strlen(szTitle))
+         _fstrcpy(szTitle,"[No Title]");
 
-      WinQueryWindowText(hwndNext,80,szTemp);
-      if (!strlen(szTemp))
-         strcpy(szTemp,"[No Title]");
+      /* Get the class name */
 
-      strcat(list[*index],szTemp);
+      WinQueryClassName(hwndNext, 80, szClass);
 
       /* Append the handle to the window */
 
-      sprintf(szTemp,"....%x:%x",SELECTOROF(hwndNext),OFFSETOF(hwndNext));
-      strcat(list[*index],szTemp);
+      sprintf(szLine,"%s%p...%s...%s",szLeader, hwndNext, szTitle, szClass);
+      WinSendMsg(hwndList, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLine));
 
-      /* Append the class name of the window */
-
-      WinQueryClassName(hwndNext,80,szTemp);
-      strcat(list[*index],"....");
-      strcat(list[*index],szTemp);
 
       /* Go find the children */
 
-      (*index)++;
-      level += 3;
-      TraverseWindows(hwndNext, list, index, level);
-      level -= 3;
+      sLevel += 3;
+      TraverseWindows(hwndNext, hwndList, sLevel);
+      sLevel -= 3;
+      } /* while */
 
-      } /* end While */
    WinEndEnumWindows(hEnum);
-   }
+   return;
+   } /* TraverseWindows */
 
