@@ -14,7 +14,7 @@
 
 HAB hab;         /* Handle to an anchor block */
 
-MRESULT EXPENTRY ClientWndProc(HWND, USHORT, MPARAM, MPARAM);
+MRESULT EXPENTRY ClientWndProc(HWND, ULONG, MPARAM, MPARAM);
 extern VOID TraverseWindows(HWND hwnd, HWND hwndList, SHORT sLevel);
 
 int main(void)
@@ -36,24 +36,24 @@ int main(void)
    hmq = WinCreateMsgQueue(hab,0);
 
    WinRegisterClass(hab,
-                    szClientClass,
-                    ClientWndProc,
+                    (PCSZ) szClientClass,
+                    (PFNWP) ClientWndProc,
                     CS_SIZEREDRAW,
                     0);
 
    hwndFrame = WinCreateStdWindow(HWND_DESKTOP,
                                   WS_VISIBLE,
                                   &flFrameFlags,
-                                  szClientClass,
-                                  NULL,
+                                  (PCSZ) szClientClass,
+                                  NULLHANDLE,
                                   0L,
-                                  NULL,
+                                  NULLHANDLE,
                                   0,
                                   &hwndClient);
 
-   WinSendMsg(hwndFrame, WM_SETICON, WinQuerySysPointer(HWND_DESKTOP, SPTR_APPICON, FALSE), NULL);
+   WinSendMsg(hwndFrame, WM_SETICON, (MPARAM) WinQuerySysPointer(HWND_DESKTOP, SPTR_APPICON, FALSE), NULL);
 
-   while(WinGetMsg(hab, &qmsg, NULL, 0, 0))
+   while(WinGetMsg(hab, &qmsg, NULLHANDLE, 0, 0))
       WinDispatchMsg(hab,&qmsg);
 
    WinDestroyWindow(hwndFrame);
@@ -64,17 +64,17 @@ int main(void)
 
 
 
-MRESULT EXPENTRY ClientWndProc(HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY ClientWndProc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
    {
    switch(msg)
       {
       case WM_CREATE:
-         WinCreateWindow(hwnd, WC_LISTBOX, "Window List",
+         WinCreateWindow(hwnd, WC_LISTBOX, (PCSZ) "Window List",
                          WS_VISIBLE | LS_NOADJUSTPOS | LS_HORZSCROLL,
                          0, 0, 0, 0,
                          hwnd, HWND_TOP, IDL_LIST, NULL, NULL);
 
-         WinSetPresParam(hwnd, PP_FONTNAMESIZE, 1+_fstrlen("8.Courier"), "8.Courier");
+         WinSetPresParam(hwnd, PP_FONTNAMESIZE, 1+strlen("8.Courier"), "8.Courier");
 
          /* Traverse the desktop windows */
 
@@ -99,7 +99,7 @@ MRESULT EXPENTRY ClientWndProc(HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
          HPS   hps;
          RECTL rclInvalid;
 
-         hps = WinBeginPaint(hwnd, NULL, &rclInvalid);
+         hps = WinBeginPaint(hwnd, NULLHANDLE, &rclInvalid);
          GpiErase(hps);
          WinEndPaint(hps);
          return 0;
@@ -122,13 +122,15 @@ VOID TraverseWindows(HWND hwnd, HWND hwndList, SHORT sLevel)
    /* Enumerate the Windows on the desktop */
 
    hEnum = WinBeginEnumWindows(hwnd);
-   while(NULL != (hwndNext = WinGetNextWindow(hEnum)))
+   while(NULLHANDLE != (hwndNext = WinGetNextWindow(hEnum)))
       {
 
       /* Unlock the Window */
 
-      WinLockWindow(hwndNext,FALSE);
-
+	#if 0
+      // WinLockWindow(hwndNext,FALSE);
+	  WinEnableWindow(hwndNext, FALSE);
+	#endif
       /* Build the proper indentation string */
 
       for(i = 0; (i < 89) & (i < sLevel); i++)
@@ -137,17 +139,17 @@ VOID TraverseWindows(HWND hwnd, HWND hwndList, SHORT sLevel)
 
       /* Get the window's title */
 
-      WinQueryWindowText(hwndNext, 80, szTitle);
+      WinQueryWindowText(hwndNext, 80, (PCH) szTitle);
       if (!strlen(szTitle))
-         _fstrcpy(szTitle,"[No Title]");
+         strcpy(szTitle,"[No Title]");
 
       /* Get the class name */
 
-      WinQueryClassName(hwndNext, 80, szClass);
+      WinQueryClassName(hwndNext, 80, (PCH) szClass);
 
       /* Append the handle to the window */
 
-      sprintf(szLine,"%s%p...%s...%s",szLeader, hwndNext, szTitle, szClass);
+      sprintf(szLine,"%s%lX...%s...%s",szLeader, hwndNext, szTitle, szClass);
       WinSendMsg(hwndList, LM_INSERTITEM, MPFROMSHORT(LIT_END), MPFROMP(szLine));
 
 
@@ -161,4 +163,3 @@ VOID TraverseWindows(HWND hwnd, HWND hwndList, SHORT sLevel)
    WinEndEnumWindows(hEnum);
    return;
    } /* TraverseWindows */
-

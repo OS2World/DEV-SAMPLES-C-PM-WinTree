@@ -1,33 +1,61 @@
-                                  WINTREE
+Name: 		WINTREE
+Descripcion: 	List Active Windows
+Date: 		2022-05-07
+Version:	2.01
+----------------------------   
 
-      WinTree will produce a scrollable listing of all the windows and
-      child windows currently active at the time the program is
-      executed.
+DESCRIPTION
+-----------
+WinTree will produce a scrollable listing of all the windows and child windows currently active at the time the program is executed.
 
-      I wrote this very "down and dirty" program to help me debug some
-      code that was trying to create child windows on another
-      application's window.  I needed to see if the children were
-      getting created in the right place.
+Gary Murphy wrote this very "down and dirty" program to help him debug some code that was trying to create child windows on another application's window.  He needed to see if the children were getting created in the right place.
 
-      The most helpful part of this program is the recursive
-      subroutine called "TraverseWindows" at the end of the listing.
-      This is the code that does the real work.  The rest of it is
-      just display services.
+The most helpful part of this program is the recursive subroutine called "TraverseWindows" at the end of the listing.
+This is the code that does the real work.  The rest of it is just display services.
 
-      I'm not interested in any money for this code, as it doesn't
-      really do much.  I WOULD be interested in hearing if it helped
-      you.  I can be contacted via:
+REQUIREMENTS
+------------
+- yum install git gcc make libc-devel binutils watcom-wrc watcom-wlink-hll
 
-                Prodigy         [VWSD07A]
-                CompuServe      [73457,365]
+COMPILE INSTRUCTIONS
+--------------------
+This version of this sample was modified to compile on ArcaOS with GCC 9 compiler. 
 
-      I'm on Prodigy a lot more than CIS.
+1) Remember to have correct header files your path. For GCC the correct ones are the included on the "libc-devel", not the ones from the OS/2 Toolkit. Check your config.sys for "SET INCLUDE=C:\usr\include"
 
-      Feel free to distribute or modify the code as you wish.  Enjoy.
+2) Since I'm using the Watcom Resource Compiler (open source) instead of the classic rc.exe, and the the Watcom Linker, intead of the classic ilink.exe, add to your config.sys...
+ SET EMXOMFLD_LINKER=wl.exe
+ SET EMXOMFLD_TYPE=WLINK
+ SET EMXOMFLD_RC_TYPE=WRC
+ SET EMXOMFLD_RC=wrc.exe
 
-                           Hilbert Computing
-                           1022 N. Cooper
-                           Olathe, KS 66061
+3) Run "make" or "make 2>&1 |tee make.out" to get the log file.
 
-                           Attn: Gary Murphy
-
+TOOLS USED
+----------
+- ArcaOS	- Verion 5.0.7
+- gcc		- gcc (GCC) 9.2.0 20190812 (OS/2 RPM build 9.2.0-5.oc00)
+- wl		- Watcom Linker
+- wrc		- Watcom Resource Compiler
+- make 		- Version 3.81 k2 (2017-11-10)
+
+TROUBLESHOOT
+------------
+The compile produce will run by just executing "make" on the directory. If you want to save the log file you can run it as "make 2>&1 |tee make.out". The log will be saved into the "make.out" file.
+
+HISTORY
+---------- 
+- 2.01
+Modified version compiled in ArcaOS 5.0.7 and gcc 9.
+
+- 2.00
+Original version of the sample
+
+LICENSE
+-------
+The 3-Clause BSD License.
+
+AUTHORS
+-------
+- Martin Iturbide (2023)
+- Gary Murphy / Hilbert Computing

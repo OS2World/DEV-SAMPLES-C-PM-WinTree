@@ -1,8 +1,8 @@
+;-------------------------------------
+; WINTREE.DEF module definition file
+;-------------------------------------
+
 NAME        WINTREE  WINDOWAPI
 
-DESCRIPTION 'List Active Windows v2.0 (c) Hilbert Computing, 1991'
-PROTMODE
-HEAPSIZE    4096
+DESCRIPTION '@#OS2World:2.01#@##1## 7 May 2023 20:00:00     ARCAOS-507::::::v2.01@@List Active Windows PM Demostration Program.'
 STACKSIZE   8192
-EXPORTS     ClientWndProc
-
